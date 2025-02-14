@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Anomaly Defect Detection System</title>
+    <link rel="stylesheet" href="../static/styles.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" type="text/javascript"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* Basic Reset */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Container */
+        .container {
+            width: 100%;
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 500;
+            width: 80%;
+            height: 100%;
+            pointer-events: none; /* Allows clicking through */
+        }
+        
+        .bounding-box {
+            position: absolute;
+            border: 3px solid red;
+            box-sizing: border-box;
+        }
+        
+        .label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            background: none;
+            color: white;
+            font-size: 10px;
+            padding: 3px 5px;
+            border-radius: 3px;
+        }
+        
+        h5{
+            font-size: 40px;
+            margin-bottom: 15px;
+            text-align: center;
+            color:rgb(51, 173, 255);
+        }
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            color: #fff;
+            border: 1px solid #007bff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+        
+        
+        .stop {
+            background-color: #ff5733 !important; 
+            border-color: #ff5733 !important;
+        }
+        
+        .start {
+            background-color: #33cc33 !important; 
+            border-color: #33cc33 !important;
+        }
+        
+        .video-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid #007bff;
+            margin:0; 
+            width: fit-content;
+        }
+
+        video, canvas {
+            width: 100%;
+            height: 600px;
+            display: block;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 200;
+            pointer-events: none; /* Allow clicks to pass through canvas */
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .col-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+        
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar_container">
+            <h1>This is Anomaly Detection</h1>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <h5 class="card-header h5 text-center">
+                        Scan the product here
+                    </h5>
+                    <div class="card-body">
+                        <div class="booth">
+                            <div class="video-container">
+                                <video id="video" width="100%" height="600px" autoplay></video>
+                                <div id="overlay"></div>  <!-- This will hold the bounding boxes -->
+                            </div>                           
+                        </div>
+
+                        <div class="text-right">
+                            <button class="btn stop" onClick="stopCam()">Stop Cam</button>
+                            <button class="btn start" onClick="startCam()">Start Cam</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const overlayCanvas = document.createElement("canvas");
+        const overlayCtx = overlayCanvas.getContext("2d");
+    
+        let stream = null;
+        let lastPredictionTime = 0;
+        const predictionInterval = 500; // 500ms for smooth predictions
+    
+        // Attach the canvas on top of the video
+        overlayCanvas.style.position = "absolute";
+        overlayCanvas.style.top = "0";
+        overlayCanvas.style.left = "0";
+        overlayCanvas.style.pointerEvents = "none"; // Allow clicking through
+        document.querySelector(".video-container").appendChild(overlayCanvas);
+    
+        function startCam() {
+            if (navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(mediaStream => {
+                        document.querySelector('.video-container').style.display = 'block';
+                        video.srcObject = mediaStream;
+                        stream = mediaStream;
+                        console.log("Camera started.");
+    
+                        // Adjust canvas size dynamically
+                        video.onloadedmetadata = () => {
+                            overlayCanvas.width = video.videoWidth;
+                            overlayCanvas.height = video.videoHeight;
+                        };
+                        
+                        requestAnimationFrame(captureFrame);
+                    })
+                    .catch(error => {
+                        console.error("Camera access error:", error);
+                        alert("Unable to access your camera.");
+                    });
+            } else {
+                alert("Your browser does not support webcam access.");
+            }
+        }
+    
+        function stopCam() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                console.log("Camera stopped.");
+            }
+        }
+    
+        function captureFrame() {
+            const now = Date.now();
+            if (now - lastPredictionTime < predictionInterval) {
+                requestAnimationFrame(captureFrame);
+                return;
+            }
+            lastPredictionTime = now;
+    
+            if (video.readyState === 4) {
+                const tempCanvas = document.createElement("canvas");
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                const tempCtx = tempCanvas.getContext("2d");
+    
+                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    
+                tempCanvas.toBlob(blob => {
+                    let formData = new FormData();
+                    formData.append("frame", blob);
+    
+                    fetch("/predict", { method: "POST", body: formData })
+                        .then(response => response.json())
+                        .then(data => {
+                            drawBoundingBoxes(data.predictions);  // Extract predictions correctly
+                        })
+                        .catch(error => console.error("Prediction error:", error));
+
+                }, "image/jpeg");
+            }
+    
+            requestAnimationFrame(captureFrame);
+        }
+    
+        function drawBoundingBoxes(predictions) {
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        
+            const allowedTags = ["Angle Carrier Board", "Insert in correct position", "Misplaced Insert", "Missing insert"];
+            let angleCarrierBoardBox = null;
+            let correctInsertCount = 0;
+            let hasDefect = false;
+        
+            predictions.forEach(pred => {
+                if (allowedTags.includes(pred.tagName) && pred.probability > 0.30) {
+                    const { boundingBox } = pred;
+        
+                    const left = boundingBox.left * video.videoWidth;
+                    const top = boundingBox.top * video.videoHeight;
+                    const width = boundingBox.width * video.videoWidth;
+                    const height = boundingBox.height * video.videoHeight;
+        
+                    let boxColor = "red";  // Default color
+                    let labelText = `${pred.tagName}: ${pred.probability.toFixed(2)}`;
+        
+                    if (pred.tagName === "Angle Carrier Board" && pred.probability > 0.60) {
+                        angleCarrierBoardBox = { left, top, width, height };  // Store bounding box
+                        boxColor = "blue";  // Default blue if not yet Good or Defected
+                    } else if (pred.tagName === "Insert in correct position") {
+                        boxColor = "green";
+                        correctInsertCount++;  // Count correct inserts
+                    } else if (pred.tagName === "Missing insert" || pred.tagName === "Misplaced Insert") {
+                        hasDefect = true;  // Mark defect presence
+                    }
+        
+                    // Draw the bounding box
+                    overlayCtx.strokeStyle = boxColor;
+                    overlayCtx.lineWidth = 3;
+                    overlayCtx.strokeRect(left, top, width, height);
+        
+                    // Draw label background
+                    overlayCtx.fillStyle = boxColor;
+                    overlayCtx.fillRect(left, top - 20, overlayCtx.measureText(labelText).width + 10, 20);
+        
+                    // Draw label text
+                    overlayCtx.fillStyle = "white";
+                    overlayCtx.font = "16px Arial";
+                    overlayCtx.fillText(labelText, left + 5, top - 5);
+                }
+            });
+        
+            // If we have an Angle Carrier Board, determine if it's Good or Defected
+            if (angleCarrierBoardBox) {
+                if (correctInsertCount === 4 && !hasDefect) {
+                    drawStatus(angleCarrierBoardBox, "Good", "green");
+                } else if (hasDefect) {
+                    drawStatus(angleCarrierBoardBox, "Defected", "red");
+                } else {
+                    // Default Angle Carrier Board stays blue if no decision
+                    overlayCtx.strokeStyle = "blue";
+                    overlayCtx.lineWidth = 3;
+                    overlayCtx.strokeRect(angleCarrierBoardBox.left, angleCarrierBoardBox.top, angleCarrierBoardBox.width, angleCarrierBoardBox.height);
+                }
+            }
+        }
+        
+        // Function to draw status for Angle Carrier Board with 'Good' or 'Defected'
+        function drawStatus(box, text, color) {
+            overlayCtx.strokeStyle = color;
+            overlayCtx.lineWidth = 4;
+            overlayCtx.strokeRect(box.left, box.top, box.width, box.height);
+            
+            overlayCtx.fillStyle = color;
+            overlayCtx.fillRect(box.left, box.top - 20, overlayCtx.measureText(text).width + 10, 20);
+            
+            overlayCtx.fillStyle = "white";
+            overlayCtx.fillText(text, box.left + 5, box.top - 5);
+        }
+        
+        
+                
+    </script>
+    
+    
+</body>
+</html>
