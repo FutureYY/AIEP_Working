@@ -1,0 +1,123 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #E8FFFF;
+}
+
+.navbar {
+    background: #2C7DA0;
+    padding: 20px 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+}
+
+.navbar_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 10px 20px;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 10px;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+.navbar_menu {
+    list-style: none;
+    display: flex;
+    padding: 10px 20px;
+    background-color: #333;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.nav_bar_item {
+    margin: 0 15px;
+}
+
+.navbar_links {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px 15px;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.navbar_links:hover {
+    background-color: #555;
+    border-radius: 5px;
+}
+.bigbox{
+    /* border: 2px black solid; */
+    border-radius: 10px;
+    margin: 20px;
+    min-height: 600px;
+    padding: 50px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    height: auto;
+
+}
+.one, .two{
+    border: 2px solid #8CC9E7;
+    background-color: #8CC9E7;
+    border-radius: 20px;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 45%;
+}
+
+#Predict, #result{
+    background-color: #ffffff;
+    border-radius: 10px;
+    font-size: 60px;
+    padding: 20px;
+    border: 3px solid #ffffff;
+    text-align: center;
+}
+.prediction, .results{
+    border: 3px solid #ffffff;
+    background-color: #ffffff;
+    border-radius: 17px;
+    margin: 50px ;
+    width: 100%;
+    min-height: 300px;
+    max-height: 300%;
+    padding: 50px;
+    overflow: auto;
+    box-sizing: border-box;
+}
+label{
+    font-size: 32px;
+    padding: 10px;
+}
+h2{
+    padding: 20px;
+    font-size: 32px;
+}
+
+
