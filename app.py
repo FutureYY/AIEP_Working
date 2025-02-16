@@ -8,9 +8,8 @@ app = Flask(__name__)
 
 PREDICTION_KEY = "EBU533jfLqn2TevjXaqfAD2i0WTiTAiFjQcNwFLp2AmgUnfvQWmwJQQJ99BBACYeBjFXJ3w3AAAIACOGEZx2"
 PROJECT_ID = "9328bc74-432d-4f21-8c6a-bbaf614c81cc"
-ITERATION_NAME = "Iteration17"
+ITERATION_NAME = "Iteration15"
 ENDPOINT = f"https://jiawen-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/{PROJECT_ID}/detect/iterations/{ITERATION_NAME}/image"
-
 
 HEADERS = {
     "Prediction-Key": PREDICTION_KEY,
