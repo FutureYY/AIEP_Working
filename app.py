@@ -49,7 +49,7 @@ def predict():
             probability = prediction["probability"]
             bounding_box = prediction["boundingBox"]
 
-            if tag_name in ALLOWED_TAGS and probability > 0.5:
+            if tag_name in ALLOWED_TAGS and probability > 0.6:
                 # Convert bounding box to image coordinates
                 left = bounding_box["left"] * img.width
                 top = bounding_box["top"] * img.height
